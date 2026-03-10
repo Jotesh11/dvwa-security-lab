@@ -2,21 +2,17 @@ DVWA Security Lab Report
 Overview
 
 This lab demonstrates practical exploitation of web application vulnerabilities using DVWA (Damn Vulnerable Web Application) deployed in a Docker container.
-
 The objective is to understand how common vulnerabilities behave under different security configurations and how defensive mechanisms affect exploitation attempts.
 
 The vulnerabilities tested in this lab include:
-
 SQL Injection
-
 Command Injection
+xss reflected
+xss stored
 
 Each vulnerability was tested at the following DVWA security levels:
-
 Low
-
 Medium
-
 High
 
 Environment Setup
@@ -33,34 +29,35 @@ Docker version XX.X.X
 
 Screenshot:
 
-screenshots/docker-version.png
+docker --version.png
 Deploying DVWA using Docker
 Pull DVWA Image
 docker pull vulnerables/web-dvwa
 
 Screenshot:
+docker pull vulnerablesweb-dvwa.png
 
-screenshots/docker-pull.png
 Run DVWA Container
 docker run -d --name dvwa -p 8080:80 vulnerables/web-dvwa
 
 Explanation:
+-d -> run container in background
 
--d → run container in background
+--name dvwa -> assigns container name
 
---name dvwa → assigns container name
-
--p 8080:80 → maps container port to local machine
+-p 8080:80 -> maps container port to local machine
 
 Screenshot:
 
-screenshots/docker-run.png
+docker ps.png
+
 Verify Container
 docker ps
 
 Screenshot:
 
-screenshots/docker-ps.png
+docker-ps.png
+
 Access DVWA
 
 Open in browser:
@@ -73,13 +70,13 @@ Username: admin
 Password: password
 
 Screenshots:
+DVWA-login-page-(2).png
+DVWA-home-page.png
 
-screenshots/dvwa-login.png
-screenshots/dvwa-dashboard.png
+
 SQL Injection
 
 SQL Injection occurs when user input is improperly sanitized and becomes part of a database query.
-
 This allows attackers to manipulate database queries and retrieve unauthorized data.
 
 OWASP Category:
@@ -93,65 +90,57 @@ Result
 The application returned multiple users from the database, demonstrating that the SQL query was manipulated.
 
 Explanation
-
 At LOW security level, user input is directly inserted into the SQL query without validation or parameterization. This allows attackers to modify the query logic.
 
 Example query behavior:
-
 SELECT * FROM users WHERE id='1' OR '1'='1'
-
 Because '1'='1' is always true, all database rows are returned.
 
 Screenshot:
+sql_low_injection.png
 
-screenshots/sql_low_injection.png
-SQL Injection – Medium Security
+SQL Injection: Medium Security
 Payload Attempted
 1' OR '1'='1
-Result
-
+Result:
 The attack could not be executed through the user interface because the input field was replaced with a dropdown menu.
 
 Explanation
-
 At MEDIUM security level, DVWA restricts input values by using a predefined dropdown list of IDs. This prevents direct SQL injection through the UI, but does not fully eliminate the vulnerability since requests could still be manipulated using interception tools.
 
 Screenshot:
 
-screenshots/sql_medium_dropdown.png
+sql_medium_dropdown.png
 SQL Injection – High Security
 Payload Attempted
 1' OR '1'='1
 Result
-
 The SQL injection attempt failed. The application returned only the expected result for the selected user ID.
 
 Explanation
-
 At HIGH security level, DVWA processes input through session handling and applies stronger filtering or parameterized queries. As a result, injected SQL code is not interpreted as part of the database query.
 
 Screenshot:
+sql_high_attempt.png
 
-screenshots/sql_high_attempt.png
+
+
 Command Injection
 
 Command Injection occurs when user input is passed directly to system commands executed by the server.
-
 This allows attackers to execute arbitrary commands on the server.
 
 OWASP Category:
 
 A05: Injection
-Command Injection – Low Security
+Command Injection - Low Security
 Payload Used
 127.0.0.1; whoami
-Result
-
+Result:
 The server executed the injected command and returned:
 
 www-data
-Explanation
-
+Explanation:
 The application directly passes user input into a system command such as:
 
 ping <user_input>
@@ -159,85 +148,71 @@ ping <user_input>
 By adding ; whoami, the server executes an additional command after the ping command.
 
 Screenshot:
+command_injection_whoami.png
 
-screenshots/command_injection_whoami.png
-Command Injection – Medium Security
+Command Injection: Medium Security
 Payload Used
 127.0.0.1 | whoami
-Result
-
-The injected command executed successfully and revealed the server user:
-
+Result:
+The injected command executed successfully and revealed the server user
 www-data
-Explanation
 
+Explanation
 At MEDIUM security level, DVWA filters some command separators such as ;, but does not properly sanitize other operators like |. This allowed command injection to still occur.
 
 Screenshot:
+command_medium_bypass.png
 
-screenshots/command_medium_bypass.png
-Command Injection – High Security
+Command Injection: High Security
 Payload Used
 127.0.0.1 | whoami
 Result
-
 The injected command was not executed. The application only returned the normal ping output.
 
 Explanation
-
 At HIGH security level, DVWA validates the input to ensure it is a valid IP address before executing the system command. Because of this validation, additional command operators such as | are ignored or filtered out.
-
 As a result, the injected command was not executed.
 
 Screenshot:
-
-screenshots/command_high_blocked.png
+command_high_blocked.png
 
 
 XSS (Reflected)
-
 Reflected Cross-Site Scripting occurs when user input is returned by the server without proper sanitization, allowing attackers to inject malicious JavaScript.
 
 OWASP Category:
 A03 – Cross-Site Scripting (XSS)
 
----
 
 ### Security Level: LOW
 
 Payload Used:
-
 ```
 <script>alert("XSS")</script>
 ```
 
 Result:
-
 A JavaScript alert popup appeared in the browser.
 
 Explanation:
-
 At LOW security level, the application directly reflects user input into the HTML response without sanitization. The browser interprets the injected script and executes it.
 
 Screenshot:
 xss_reflected_low.png
 
----
+
 
 ### Security Level: MEDIUM
 
 Payload Attempted:
-
 ```
 <script>alert("XSS")</script>
 ```
 
 Result:
-
 The script did not execute and only the text `alert("XSS")` appeared on the page.
 
 Explanation:
-
 At MEDIUM security level, DVWA filters `<script>` tags from user input. This prevents direct script execution but may still be vulnerable to other bypass techniques.
 
 Screenshot:
@@ -248,45 +223,37 @@ xss_reflected_medium.png
 ### Security Level: HIGH
 
 Payload Attempted:
-
 ```
 <script>alert("XSS")</script>
 ```
 
 Result:
-
 The application removed the script entirely and displayed only `Hello >`.
 
 Explanation:
-
 At HIGH security level, the application sanitizes user input before returning it to the browser. This prevents malicious scripts from being interpreted and executed.
 
 Screenshot:
 xss_reflected_high_blocked.png
 
-# XSS (Stored)
 
+# XSS (Stored)
 Stored Cross-Site Scripting occurs when malicious scripts are permanently stored in the application's database and executed whenever users view the affected page.
 
 OWASP Category:
 A03 – Cross-Site Scripting (XSS)
-
 ---
 
 ## Security Level: LOW
-
 Payload:
-
 ```
 <script>alert("Stored XSS")</script>
 ```
 
 Result:
-
 A JavaScript alert popup appeared when the page loaded.
 
 Explanation:
-
 The application stores user input directly in the database without sanitization. When the stored message is displayed, the browser executes the injected script.
 
 Screenshot:
@@ -297,17 +264,14 @@ xss_stored_low.png
 ## Security Level: MEDIUM
 
 Payload:
-
 ```
 <img src=x onerror=alert("Stored XSS")>
 ```
 
 Result:
-
 The injected script executed using an image error handler.
 
 Explanation:
-
 Basic filtering prevented `<script>` tags but failed to sanitize other HTML attributes capable of executing JavaScript.
 
 Screenshot:
@@ -318,28 +282,28 @@ xss_stored_medium.png
 ## Security Level: HIGH
 
 Payload:
-
 ```
 <script>alert("Stored XSS")</script>
 ```
 
 Result:
-
 The script did not execute and appeared as plain text.
 
 Explanation:
-
 At HIGH security level, the application sanitizes user input before storing or displaying it, preventing script execution.
 
 Screenshot:
 xss_stored_high_blocked.png
 
 
-Summary of Findings:
-| Vulnerability     | Low         | Medium                | High      |
-| ----------------- | ----------- | --------------------- | --------- |
-| SQL Injection     | Exploitable | Input restriction     | Prevented |
-| Command Injection | Exploitable | Partially exploitable | Prevented |
+## Summary of Findings
+
+| Vulnerability     | Low         | Medium                | High                      |
+|-------------------|-------------|-----------------------|---------------------------|
+| SQL Injection     | Exploitable | Input restriction     | Prevented                 |
+| Command Injection | Exploitable | Partially exploitable | Prevented                 |
+| XSS (Reflected)   | Exploitable | Partially filtered    | Prevented / Sanitized     |
+| XSS (Stored)      | Exploitable | Partially filtered    | Prevented / Sanitized     |
 
 
 
@@ -348,7 +312,6 @@ Summary of Findings:
 ## Running Containers
 
 Command:
-
 ```
 docker ps
 ```
@@ -356,14 +319,12 @@ docker ps
 This command lists all running containers and confirms that the DVWA container is active.
 
 Screenshot:
-docker_ps.png
-
+docker_ps.png.png
 ---
 
 ## Container Details
 
 Command:
-
 ```
 docker inspect dvwa
 ```
@@ -371,14 +332,13 @@ docker inspect dvwa
 This command provides detailed information about the container configuration, including networking, storage, and environment variables.
 
 Screenshot:
-docker_inspect.png
+docker_inspect.png.png
 
 ---
 
 ## Container Logs
 
 Command:
-
 ```
 docker logs dvwa
 ```
@@ -386,91 +346,72 @@ docker logs dvwa
 This displays the runtime logs generated by the container.
 
 Screenshot:
-docker_logs.png
+docker_logs.png.png
 
 ---
 
 ## Accessing the Container
 
 Command:
-
 ```
 docker exec -it dvwa /bin/bash
 ```
 
 This command opens an interactive shell inside the running container.
-
 Screenshot:
 docker_shell.png
 
 ---
 
 ## Application Files
-
 Command:
-
 ```
 ls /var/www/html
 ```
 
 Result:
-
 The DVWA application files are located inside `/var/www/html`.
 
 Explanation:
-
 This directory contains the PHP web application served by the Apache web server.
 
 Screenshot:
-docker_ls_html.png
+docker_ls_html.png.png
 
 
 # Security Analysis
 
 ## 1. Why does SQL Injection succeed at LOW security?
-
 At LOW security level, the application directly inserts user input into the SQL query without any validation or sanitization.
-
 Example vulnerable query structure:
-
 ```
 SELECT * FROM users WHERE id = '$id';
 ```
 
 When the attacker enters:
-
 ```
 1' OR '1'='1
 ```
 
 The query becomes:
-
 ```
 SELECT * FROM users WHERE id = '1' OR '1'='1';
 ```
-
 The condition `'1'='1'` is always true, so the database returns all records. Because the input is not sanitized or parameterized, the attacker is able to manipulate the SQL query.
-
 This demonstrates how **unsanitized user input can modify database queries**.
 
 ---
 
 ## 2. What control prevents SQL Injection at HIGH security?
-
 At HIGH security level, DVWA uses **prepared statements and input validation**.
-
 Prepared statements separate the SQL query structure from user input.
 
 Example:
-
 ```
 SELECT * FROM users WHERE id = ?
 ```
-
 The user input is treated strictly as **data**, not as part of the SQL command. This prevents the attacker from altering the query structure.
-
 Additional protections may include:
-
 • Input validation  
 • Escaping special characters  
 • Parameterized queries
@@ -480,45 +421,33 @@ These mechanisms ensure the SQL engine interprets user input only as values.
 ---
 
 ## 3. Does HTTPS prevent these attacks? Why or why not?
-
 No, HTTPS does not prevent vulnerabilities such as SQL Injection or Cross-Site Scripting.
-
 HTTPS only encrypts the communication between the client and the server. It protects against:
-
 • Eavesdropping  
 • Man-in-the-middle attacks  
 • Data interception during transmission
 
 However, HTTPS does not validate or sanitize application input. If the application processes user input insecurely, attacks like SQL Injection or XSS can still occur even over HTTPS.
-
 Therefore, HTTPS protects **data in transit**, but it does not protect against **application logic vulnerabilities**.
 
 ---
 
 ## 4. What risks exist if this application is deployed publicly?
-
 If DVWA or a similarly vulnerable application were deployed on the public internet, several serious risks would exist:
-
-**Database compromise**
-
+Database compromise
 Attackers could exploit SQL Injection to retrieve sensitive information such as usernames, passwords, and personal data.
 
-**Remote command execution**
-
+Remote command execution
 Command Injection vulnerabilities could allow attackers to execute operating system commands on the server.
 
-**Session hijacking**
-
+Session hijacking
 Cross-Site Scripting attacks could allow attackers to steal session cookies and impersonate users.
 
-**Data modification**
-
+Data modification
 Attackers may alter or delete data stored in the database.
 
-**Server compromise**
-
+Server compromise
 Some vulnerabilities could allow attackers to escalate privileges and gain control of the underlying system.
-
 These risks demonstrate why secure coding practices and vulnerability testing are essential before deploying applications.
 
 ---
@@ -533,8 +462,8 @@ These risks demonstrate why secure coding practices and vulnerability testing ar
 | XSS (Stored) | A03: Cross-Site Scripting |
 
 Injection vulnerabilities occur when untrusted input is interpreted as commands or queries by an interpreter such as a SQL engine or operating system shell.
-
 Cross-Site Scripting occurs when malicious scripts are injected into web pages and executed in users' browsers.
+
 
 
 
